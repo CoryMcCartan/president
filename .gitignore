@@ -1,0 +1,9 @@
+*.Rproj
+.Rhistory
+.Rproj.user/
+.DS_Store
+*.tmp
+*.bak
+*.rdata
+*.rds
+*.swp
