@@ -207,11 +207,11 @@ entry = mutate_if(entry, is.numeric, ~ round(., 4))
 
 natl_intent_tbl = natl_draws %>%
     group_by(day) %>%
-    summarize(natl_exp = median(natl_final),
-              natl_q05 = quantile(natl_final, 0.05),
-              natl_q25 = quantile(natl_final, 0.25),
-              natl_q75 = quantile(natl_final, 0.75),
-              natl_q95 = quantile(natl_final, 0.95)) %>%
+    summarize(natl_exp = median(natl_dem),
+              natl_q05 = quantile(natl_dem, 0.05),
+              natl_q25 = quantile(natl_dem, 0.25),
+              natl_q75 = quantile(natl_dem, 0.75),
+              natl_q95 = quantile(natl_dem, 0.95)) %>%
     mutate(date = to_date(day))
 
 state_probs = state_draws %>%
@@ -237,7 +237,7 @@ with(output, cat(glue("
      {round((election_day - from_date)/7)} weeks until the election.
      {n_polls} polls.
 
-     Dem. share of two-party vote:   {round(100*natl_exp)}%
+     Dem. share of two-party vote:   {round(100*natl_exp, 1)}%
      Median EV estimate:             {round(ev_exp)}
      Estimated EV range:             {round(ev_q05)} - {round(ev_q95)}
      Probability of winning:         {round(100*prob)}%
