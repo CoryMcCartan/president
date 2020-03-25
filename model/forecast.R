@@ -217,7 +217,9 @@ natl_intent_tbl = natl_draws %>%
 state_probs = state_draws %>%
     filter(day == n_days) %>%
     group_by(state) %>%
-    summarize(prob = mean(state_dem > 0.5))
+    summarize(prob = mean(state_dem > 0.5)) %>%
+    left_join(state_abbr, by=c("state"="abbr")) %>%
+    rename(state_name = state.y)
 
 output = append(as.list(entry), list(
     time = Sys.time(),
