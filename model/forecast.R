@@ -36,8 +36,10 @@ opt = parse_args(OptionParser(option_list=option_list,
 
 suppressMessages(library(tibble))
 suppressMessages(library(dplyr))
-suppressMessages(library(purrr))
 suppressMessages(library(tidyr))
+suppressMessages(library(purrr))
+suppressMessages(library(stringr))
+suppressMessages(library(forcats))
 suppressMessages(library(readr))
 suppressMessages(library(lubridate))
 suppressMessages(library(glue))
@@ -89,7 +91,7 @@ state_prior_d2020 = get_state_prior_d()
 ### Fitting prior model
 ###
 cat("Building prior.\n")
-suppressMessages(library(rstan))
+suppressMessages(library(cmdstanr))
 suppressMessages(library(rstanarm))
 options(mc.cores=4)
 source("model/get_models.R")
