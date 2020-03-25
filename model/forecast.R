@@ -47,11 +47,11 @@ suppressMessages(library(jsonlite))
 election_day = as.Date("2020-11-03")
 start_date = ymd("2020-03-04")
 from_date = as.Date(opt$date)
-n_days = ceiling(as.numeric(election_day - start_date) / 3)
-n_weeks = ceiling(as.numeric(election_day - start_date) / 21)
+n_days = ceiling(as.numeric(election_day - start_date) / 3) + 1
+n_weeks = ceiling(as.numeric(election_day - start_date) / 21) + 1
 wnum = (0:(n_days-1)) / 7
 week_frac = if_else(floor(wnum)==wnum, 0, wnum - floor(wnum))
-to_date = function(day)  election - 3*(n_days - day + 1)
+to_date = function(day)  election_day - 3*(n_days - day)
 
 polls_model_path = file.path(opt$model_dir, "polls")
 natl_model_path = file.path(opt$model_dir, "natl-prior")

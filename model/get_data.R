@@ -26,8 +26,8 @@ get_elec_polls = function(write=F) {
         pivot_wider(names_from=answer, values_from=pct) %>%
         mutate(national = is.na(state),
                date = mdy(date1) + (mdy(date2) - mdy(date1))/2,
-               day = n_days - ceiling(as.numeric(election_day - date) / 3) + 1,
-               week = n_weeks - ceiling(as.numeric(election_day - date) / 21) + 1,
+               day = n_days - ceiling(as.numeric(election_day - date) / 3),
+               week = n_weeks - ceiling(as.numeric(election_day - date) / 21),
                dem = Biden / (Biden + Trump),
                gop = Trump / (Biden + Trump),
                sample = round(sample_size * (Biden + Trump)/100),
