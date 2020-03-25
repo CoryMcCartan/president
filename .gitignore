@@ -7,3 +7,5 @@
 *.rdata
 *.rds
 *.swp
+stan/polls
+stan/polls-warmup-*.csv

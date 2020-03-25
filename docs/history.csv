@@ -1,0 +1,2 @@
+date,ev_exp,ev_min,ev_q05,ev_q25,ev_q75,ev_q95,ev_max,natl_exp,natl_q05,natl_q25,natl_q75,natl_q95,prob,prob_pop,prob_tie,prob_pop_ev_DR,prob_pop_ev_RD
+2020-03-24,254,24,144,204.75,312,401,494,0.5005,0.4524,0.4812,0.5205,0.5443,0.4376,0.5043,0.0052,0.1395,0.0767
