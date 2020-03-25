@@ -227,10 +227,19 @@ filter(d, year==2016) %>%
  
 
 state_draws %>%
-    filter(state == "WI" | state == "PA") %>%
+    ungroup %>%
+    filter(state == "WI" | state == "PA", day == n_days) %>%
+    select(.draw, state, state_dem) %>%
     pivot_wider(names_from=state, values_from=state_dem) %>%
 ggplot(aes(WI, PA)) + geom_point(size=0.05, alpha=0.2) +
     coord_fixed() +
     geom_smooth(method=lm) +
     geom_abline(slope=1)
+
+state_draws %>%
+    filter(.draw == sample(1:2100, 1), day == n_days) %>%
+    mutate(winner = round(state_dem)) %>%
+plot_usmap("states", value="winner", data=.) +
+    scale_fill_gradient2(midpoint=0.5) +
+    guides(fill=F)
 

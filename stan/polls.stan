@@ -93,7 +93,7 @@ model {
     for (i in 1:N) {
         if (!national[i]) {
             val_poll[i] += all_state_error 
-                + state_error[state[i]]*prior_states_poll_error;
+                + state_error[state[i]]*(prior_states_poll_error - sqrt(nonsamp_var));
             if (day[i] <= D_W)
                 val_poll[i] += mu_state[week[i], state[i]];
             else

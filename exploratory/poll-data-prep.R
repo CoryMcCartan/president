@@ -52,7 +52,7 @@ natl_error = polls %>%
     summarize(xbar = mean(logit_error), s = sd(logit_error), n = n()) %>%
     pmap_dfr(post_error)
 
-# elec-by-ele national error
+# elec-by-elec national error
 natl_error_elec = polls %>%
     filter(national) %>%
     group_by(year) %>%
