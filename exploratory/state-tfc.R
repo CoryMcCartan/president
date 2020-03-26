@@ -37,12 +37,22 @@ m3 = stan_lmer(dem ~ ldem + l2dem + (1|region:year) + inc*ldem*two.term +
                    pr_state + vp_state + lpr_state + l2pr_state + lvp_state +
                    (ldem||year),
                data=d_fit, chains=1, warmup=500, iter=1700, prior=cauchy())
+m4 = stan_lmer(dem ~ ldem + l2dem + (ldem+l2dem|region) + (1|region:year) + 
+                   inc*ldem*two.term +
+                   pr_state + vp_state + lpr_state + l2pr_state + lvp_state,
+               data=d_fit, chains=1, warmup=500, iter=1700, prior=cauchy())
+m5 = stan_lmer(dem ~ ldem + l2dem + (ldem+l2dem|region) + (1|region:year) + 
+                   inc*ldem*two.term + (region|year) +
+                   pr_state + vp_state + lpr_state + l2pr_state + lvp_state,
+               data=d_fit, chains=1, warmup=500, iter=1700, prior=cauchy())
 
 print(m1, digits=3, detail=F)
 print(m2, digits=3, detail=F)
 print(m3, digits=3, detail=F)
+print(m4, digits=3, detail=F)
 
-compare_models(waic(m1), waic(m2), waic(m3))
+compare_models(waic(m1), waic(m2), waic(m3), waic(m4))
+compare_models(waic(m3), waic(m4), waic(m5))
 
 ggplot(d_fit, aes(fitted(m5), resid(m5)/4, label=str_c(abbr, year %% 100))) +
     geom_text(size=3)

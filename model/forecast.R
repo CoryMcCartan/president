@@ -62,6 +62,11 @@ state_model_path = file.path(opt$model_dir, "state-prior")
 state_abbr = read_rds("output/state_data_2016.rdata") %>%
     select(state, abbr) %>%
     filter(!str_detect(state, "CD-"))
+state_regn = read_csv("data/historical/state_data_combined.csv") %>%
+    select(abbr, regn=region) %>%
+    distinct()
+state_regn$regn[state_regn$abbr=="TN"] = "South"
+state_regn$regn[state_regn$abbr=="WV"] = "South"
 
 
 ###
@@ -77,6 +82,9 @@ polls_d %>%
     select(date, state, national, firm, dem) %>%
     write_csv("docs/polls.csv")
 poll_errors = read_rds("output/poll_errors.rdata")
+poll_errors$prior_natl_poll_bias = 0
+poll_errors$prior_all_state_poll_bias = 0
+poll_errors$prior_regn_poll_bias = 0
 
 # Q2 GDP forecast
 gdp_growth = get_gdp_est()
@@ -104,6 +112,8 @@ state_prior_pred = posterior_predict(state_model, newdata=state_prior_d2020)
 state_prior_mean = colMeans(state_prior_pred)
 state_x = apply(state_prior_pred, 2, function(x) x - mean(x))
 state_prior_cov = (t(state_x) %*% state_x) / (nrow(state_x) - 1)
+state_sd = sqrt(diag(state_prior_cov))
+state_prior_cov = diag(state_sd) %*% (0.9 + 0.1*diag(51)) %*% diag(state_sd)
 
 ###
 ### Fitting main model
@@ -120,7 +130,7 @@ model_d = compose_data(polls_d, .n_name = n_prefix("N"),
                        prior_natl_mean = mean(natl_prior_pred), 
                        prior_natl_sd = sqrt(2)*sd(natl_prior_pred),
                        prior_state_mean = state_prior_mean, 
-                       prior_state_cov = 2*state_prior_cov,
+                       prior_state_cov = state_prior_cov,
                        prior_rv_bias = 0.011,
                        prior_lv_bias = 0.0,
                        prior_a_bias = 0.02,
@@ -221,6 +231,7 @@ state_probs = state_draws %>%
     group_by(state) %>%
     summarize(prob = mean(state_dem > 0.5)) %>%
     left_join(state_abbr, by=c("state"="abbr")) %>%
+    left_join(state_ev, by="state") %>%
     rename(state_name = state.y)
 
 output = append(as.list(entry), list(

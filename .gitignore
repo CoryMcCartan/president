@@ -8,4 +8,4 @@
 *.rds
 *.swp
 stan/polls
-stan/polls-warmup-*.csv
+stan/polls_warmup-*.csv

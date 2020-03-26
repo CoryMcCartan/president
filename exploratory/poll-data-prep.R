@@ -1,4 +1,6 @@
 library(tidyverse)
+library(tidybayes)
+library(rstan)
 
 ### BAYES MACHINERY
 
@@ -28,6 +30,12 @@ post_error = function(xbar, s, n, ...) {
 
 #### POLL DATA ########
 
+state_reg = read_csv("data/historical/state_data_combined.csv") %>%
+    select(state=abbr, region) %>%
+    distinct
+state_reg$region[state_reg$state=="TN"] = "South"
+state_reg$region[state_reg$state=="WV"] = "South"
+
 raw_polls = read_csv("data/polls/raw-polls.csv") %>%
     filter(type_simple == "Pres-G") %>%
     mutate(national = location == "US",
@@ -39,7 +47,8 @@ raw_polls = read_csv("data/polls/raw-polls.csv") %>%
 polls = raw_polls %>%
     group_by(year, state, national) %>%
     summarize(dem_poll = weighted.mean(dem_poll, wgt),
-           dem_act = mean(dem_act))
+           dem_act = mean(dem_act)) %>%
+    left_join(state_reg, by="state")
 
 
 ## NATL ERROR
@@ -58,6 +67,7 @@ natl_error_elec = polls %>%
     group_by(year) %>%
     transmute(natl_error = qlogis(dem_poll) - qlogis(dem_act))
 
+    
 state_error_elec = polls %>%
     ungroup %>%
     filter(!national) %>%
@@ -69,23 +79,100 @@ state_error_elec = polls %>%
 all_state_errors = state_error_elec %>%
     summarize(xbar = mean(state_error), s = sd(state_error), n = n()) %>%
     pmap_dfr(post_error)
-    
+
+regn_error_elec = polls %>%
+    filter(!national) %>%
+    group_by(year, region) %>%
+    summarize(dem_poll = mean(dem_poll),
+              dem_act = mean(dem_act)) %>%
+    left_join(natl_error_elec, by="year") %>%
+    left_join(state_error_elec, by="year") %>%
+    group_by(year, region) %>%
+    transmute(regn_error = qlogis(dem_poll) - qlogis(dem_act) - natl_error - state_error)
+
+regn_errors = regn_error_elec %>%
+    ungroup %>%
+    summarize(xbar = mean(regn_error), s = sd(regn_error), n = n()) %>%
+    pmap_dfr(post_error)
+
 states_errors = polls %>%
+    ungroup %>%
+    filter(!national) %>%
+    left_join(state_error_elec, by="year") %>%
+    left_join(regn_error_elec, by=c("region", "year")) %>%
+    left_join(natl_error_elec, by="year") %>%
+    mutate(logit_error = qlogis(dem_poll) - qlogis(dem_act) - state_error 
+           - regn_error - natl_error) %>%
+    summarize(xbar = mean(logit_error), s = sd(logit_error), n = n()) %>%
+    pmap_dfr(post_error)
+
+infl_factor = sd(rt(1e6, natl_error$nu))
+infl_factor2 = sd(rt(1e6, regn_errors$nu))
+poll_errors = list(prior_natl_poll_bias = natl_error$mu,
+                   prior_natl_poll_error = infl_factor * natl_error$sigma,
+                   prior_all_state_poll_bias = all_state_errors$mu,
+                   prior_all_state_poll_error = infl_factor * all_state_errors$sigma,
+                   prior_regn_poll_bias = regn_errors$mu,
+                   prior_regn_poll_error = infl_factor2 * regn_errors$sigma,
+                   prior_states_poll_error = states_errors$sigma)
+write_rds(poll_errors, "output/poll_errors.rdata")
+
+
+
+code = "
+data {
+    int N;
+    int K;
+    vector[K] y[N];
+    real alpha;
+}
+parameters {
+    real mu;
+    vector<lower=0>[K] tau;
+    real<lower=0, upper=1> rho;
+}
+transformed parameters {
+    matrix[K, K] Sigma = quad_form_diag(add_diag(rep_matrix(rho, K, K), 1 - rho), tau); 
+}
+model {
+    y ~ multi_normal(rep_vector(mu, K), Sigma);
+    mu ~ normal(0, 0.01);
+    tau ~ gamma(2, 2/0.05);
+    rho ~ beta(alpha, 1);
+}
+"
+
+sm = stan_model(model_code = code)
+
+x = polls %>%
     ungroup %>%
     filter(!national) %>%
     left_join(state_error_elec, by="year") %>%
     left_join(natl_error_elec, by="year") %>%
     mutate(logit_error = qlogis(dem_poll) - qlogis(dem_act) - state_error - natl_error) %>%
-    summarize(xbar = mean(logit_error), s = sd(logit_error), n = n()) %>%
-    pmap_dfr(post_error)
+    select(year, state, logit_error) %>%
+    complete(year, state) %>%
+    mutate(logit_error = coalesce(logit_error, 0)) %>%
+    pivot_wider(names_from=state, values_from=logit_error) %>%
+    select(-year) %>%
+    as.matrix
 
-infl_factor = sd(rt(1e6, natl_error$nu))
-poll_errors = list(prior_natl_poll_bias = natl_error$mu,
-                   prior_natl_poll_error = infl_factor * natl_error$sigma,
-                   prior_all_state_poll_bias = all_state_errors$mu,
-                   prior_all_state_poll_error = infl_factor * all_state_errors$sigma,
-                   prior_states_poll_error = states_errors$sigma)
-write_rds(poll_errors, "output/poll_errors.rdata")
+m = sampling(sm, data=compose_data(y=x, N=nrow(x), K=ncol(x), alpha=4), 
+             chains=1, init=0)
+
+summary(m, pars=c("mu", "rho"))
+
+xcov = apply(extract(m)$Sigma, 2:3, function(x) mean(x)) 
+xsd = sqrt(diag(xcov))
+xcor = diag(1/xsd) %*% xcov %*% diag(1/xsd)
+round(xcor[1:10, 1:10], 2)
+apply(extract(m)$Sigma, 2:3, function(x) sd(x)) %>% as.numeric %>% qplot
+apply(extract(m)$Sigma, 2:3, function(x) mean(x)) %>% as.numeric %>% qplot
+heatmap(xcor, symm=T)
+
+
+
+
 
 cm = polls %>%
     filter(!national) %>%

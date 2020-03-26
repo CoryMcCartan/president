@@ -10,6 +10,7 @@ data {
     int W; // "weeks"
     int D_W; // "days" per "week"
     int N_state;
+    int N_regn;
     int N_firm;
     
     int<lower=1> day[N];
@@ -17,6 +18,7 @@ data {
     int<lower=-1> state[N];
     int<lower=1> firm[N];
     int<lower=1> week_day[D];
+    int<lower=1> regn[N];
     real<lower=0, upper=1> week_frac[D];
     vector<lower=0, upper=1>[N] type_rv;
     vector<lower=0, upper=1>[N] type_lv;
@@ -35,6 +37,8 @@ data {
     real<lower=0> prior_natl_poll_error;
     real prior_all_state_poll_bias;
     real<lower=0> prior_all_state_poll_error; 
+    real prior_regn_poll_bias;
+    real<lower=0> prior_regn_poll_error;
     real<lower=0> prior_states_poll_error; 
     // sds state poll errors around global state+natl error
     
@@ -57,6 +61,7 @@ parameters {
     real<lower=0> nonsamp_var;
     real natl_error;
     real all_state_error;
+    vector[N_regn] regn_error;
     vector[N_state] state_error;
     real<lower=0> sd_firm; // hyperparameter for pollster errors
     real bias_rv; // registered voter poll bias
@@ -92,8 +97,8 @@ model {
         + 4*bias_rv*type_rv + 4*bias_lv*type_lv + 4*bias_a*type_a + natl_error;
     for (i in 1:N) {
         if (!national[i]) {
-            val_poll[i] += all_state_error 
-                + state_error[state[i]]*(prior_states_poll_error - sqrt(nonsamp_var));
+            val_poll[i] += all_state_error + regn_error[regn[i]] 
+                + prior_states_poll_error*state_error[state[i]];
             if (day[i] <= D_W)
                 val_poll[i] += mu_state[week[i], state[i]];
             else
@@ -116,6 +121,7 @@ model {
     sigma_state ~ gamma(2, 2/0.01);
     natl_error ~ normal(prior_natl_poll_bias, prior_natl_poll_error);
     all_state_error ~ normal(prior_all_state_poll_bias, prior_all_state_poll_error);
+    regn_error ~ normal(prior_regn_poll_bias, prior_regn_poll_error);
     state_error ~ std_normal();
     
     sd_firm ~ gamma(2, 2/0.05);

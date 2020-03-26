@@ -47,9 +47,9 @@ get_state_prior_m = function(path, state_d, recompile=F) {
                    q2.appr = qlogis(q2.appr)) %>%
             drop_na
         
-        model = stan_lmer(dem ~ ldem + l2dem + (1|region:year) + inc*ldem*two.term + 
-                              pr_state + vp_state + lpr_state + l2pr_state + lvp_state +
-                              (ldem||year),
+        model = stan_lmer(dem ~ ldem + l2dem + (ldem+l2dem|region) + 
+                              (1|region:year) + inc*ldem*two.term + 
+                              pr_state + vp_state + lpr_state + l2pr_state + lvp_state,
                           data=d, chains=1, warmup=500, iter=1700, prior=cauchy())
         
         write_rds(model, compiled_model, compress="gz")

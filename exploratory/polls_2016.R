@@ -13,9 +13,19 @@ start_date = ymd("2016-03-10")
 n_days = ceiling(as.numeric(election - start_date) / 3)
 n_weeks = ceiling(as.numeric(election - start_date) / 21)
 to_date = function(day)  election - 3*(n_days - day + 1)
+
+state_d = suppressMessages(read_csv("data/historical/state_data_combined.csv"))
 states = distinct(select(state_d, state=abbr)) %>% pull 
 
 run_date = ymd("2016-08-20")
+
+state_reg = read_csv("data/historical/state_data_combined.csv") %>%
+    select(state=abbr, regn=region) %>%
+    distinct %>%
+    left_join(distinct(select(state_d, name=state, state=abbr)), by="state") %>%
+    select(state=name, regn)
+state_reg$regn[state_reg$state=="Tennessee"] = "South"
+state_reg$regn[state_reg$state=="West Virginia"] = "South"
 
 polls_d = suppressMessages(read_csv("data/polls/president_general_polls_2016.csv")) %>%
     filter(type == "polls-only", 
@@ -37,8 +47,9 @@ polls_d = suppressMessages(read_csv("data/polls/president_general_polls_2016.csv
            type_a = population=="a") %>%
     filter(date >= start_date, !is.na(n_dem), !type_a, firm != "Other") %>%
     filter(date <= run_date) %>%
-    select(state, national, date, day, week, firm, sample, 
-           type_rv, type_lv, type_a, dem, n_dem, var_poll)
+    left_join(state_reg, by="state") %>%
+    select(state, regn, national, date, day, week, firm, sample, 
+           type_rv, type_lv, type_a, dem, n_dem, var_poll) 
 
 # joined table + week stuff
 wnum = (0:(n_days-1)) / 7
@@ -48,6 +59,7 @@ polls_d = polls_d %>%
     filter(!str_detect(state, "CD-")) %>%
     group_by(national) %>%
     mutate(abbr = if_else(national, "WA", abbr),
+           regn = if_else(national, "West", regn),
            date = as.character(date)) %>%
     select(abbr, day, date, week, everything(), -state) %>%
     mutate(state = match(abbr, states))
@@ -75,7 +87,10 @@ model_d = compose_data(polls_d, .n_name = n_prefix("N"),
                        lv_rv_ratio = 5,
                        poll_errors,
                        )
-model_d$state = coalesce(model_d$state, 1) # fill natl polls (state=NA) with 1
+#model_d$state = coalesce(model_d$state, 1) # fill natl polls (state=NA) with 1
+model_d$prior_natl_poll_bias = 0
+model_d$prior_all_state_poll_bias = 0
+model_d$prior_regn_poll_bias = 0
 str(model_d)
 
 
@@ -94,15 +109,22 @@ imm = str_match(outf, "# Diagonal elements of inverse mass matrix:\n# ([ e\\-.,0
     str_split(", ", simplify=T) %>%
     parse_number
 
+sm = stan_model("stan/polls.stan")
+m = sampling(sm, data=model_d, chains=3, iter=1000, warmup=300, num_cores=4,
+             control=list(adapt_delta=0.95))
+
 m = sm$sample(data=model_d, num_chains=3, num_samples=700, num_warmup=300,
               num_cores=4, adapt_delta=0.95, stepsize=stepsize, inv_metric=imm)
 m = sm$sample(data=model_d, num_chains=3, num_samples=600, num_warmup=300,
-              num_cores=4, adapt_delta=0.95, stepsize=stepsize)
+              num_cores=4, adapt_delta=0.95)
 m$save_output_files("stan/", "polls_warmup", timestamp=F, random=F)
+m = sm$sample(data=model_d, num_chains=1, num_samples=600, num_warmup=300,
+              num_cores=4, adapt_delta=0.95)
 
 raw_draws = posterior::as_draws_df(m$draws())
 uv_pars = c("sigma_natl", "sigma_state", "nonsamp_sd", "natl_error", 
-            "all_state_error", "sd_firm", "bias_rv", "bias_lv")
+            "all_state_error", "regn_error[1]", "regn_error[2]",
+            "regn_error[3]", "regn_error[4]", "sd_firm", "bias_rv", "bias_lv")
 raw_draws %>% select(uv_pars) %>%
     summarize_all(list(mean=mean, sd=sd)) %>% t
 
@@ -111,6 +133,7 @@ natl_draws = raw_draws %>%
     pivot_longer(cols=starts_with("natl_dem"), names_to="day", 
                  names_pattern="natl_dem\\[(.+)\\]", values_to="natl_dem") %>%
     mutate_if(is.character, as.numeric)
+
 ggplot(natl_draws, aes(to_date(day), natl_dem)) + 
     stat_lineribbon() +
     geom_hline(yintercept=0.5111, lty="dashed") +
@@ -130,10 +153,10 @@ state_draws = raw_draws %>%
                  names_pattern="state_dem\\[(.+),(.+)\\]", values_to="state_dem") %>%
     mutate(day = as.numeric(day),
            state_num = as.numeric(state),
-           state = state_abbr$abbr[as.numeric(state)])
-           #state = states[as.numeric(state)])
+           #state = state_abbr$abbr[as.numeric(state)])
+           state = states[as.numeric(state)])
 
-plot.state = "WI"
+plot.state = "FL"
 filter(state_draws, state==plot.state) %>%
 ggplot(aes(to_date(day), state_dem)) + 
     stat_lineribbon() +
@@ -203,7 +226,7 @@ filter(d, year==2016) %>%
     left_join(state_est_pct, by="state") %>%
     mutate(err = dem_est - dem_act) %>%
     left_join(distinct(select(state_d, state=abbr, region)), by="state") %>%
-ggplot(aes(dem_est, err, label=state, group=region, color=sign(dem_est-0.5))) +
+ggplot(aes(dem_est, dem_act, label=state, group=region, color=sign(dem_est-0.5))) +
     #geom_smooth(method=lm, se=F, color="black", size=0.5) +
     scale_color_gradient2() +
     geom_abline(slope=1) +
@@ -228,10 +251,14 @@ filter(d, year==2016) %>%
 
 state_draws %>%
     ungroup %>%
-    filter(state == "WI" | state == "PA", day == n_days) %>%
+    filter(state == "VA" | state == "NC", day == n_days) %>%
     select(.draw, state, state_dem) %>%
     pivot_wider(names_from=state, values_from=state_dem) %>%
-ggplot(aes(WI, PA)) + geom_point(size=0.05, alpha=0.2) +
+    rename(S1=2, S2=3) %>%
+    summarize(mean(S1 > S2))
+    #lm(PA ~ WI, data=.) %>%
+    #summary()
+ggplot(aes(TX, VA)) + geom_point(size=0.05, alpha=0.2) +
     coord_fixed() +
     geom_smooth(method=lm) +
     geom_abline(slope=1)
@@ -240,6 +267,6 @@ state_draws %>%
     filter(.draw == sample(1:2100, 1), day == n_days) %>%
     mutate(winner = round(state_dem)) %>%
 plot_usmap("states", value="winner", data=.) +
-    scale_fill_gradient2(midpoint=0.5) +
+    scale_fill_gradient2(midpoint=0.5) + #, limits=c(0.2, 0.8)) +
     guides(fill=F)
 

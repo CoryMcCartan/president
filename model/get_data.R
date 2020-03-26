@@ -45,10 +45,12 @@ get_elec_polls = function(write=F) {
     
     polls_d %>%
         left_join(state_abbr, by="state") %>%
+        left_join(state_regn, by="abbr") %>%
         group_by(national) %>%
         mutate(abbr = if_else(national, "WA", abbr),
+               regn = if_else(national, "West", regn),
                date = as.character(date)) %>%
-        select(abbr, day, date, week, everything(), -state) %>%
+        select(abbr, regn, day, date, week, everything(), -state) %>%
         mutate(state = match(abbr, state_abbr$abbr))    
 }
 
@@ -67,7 +69,7 @@ get_gdp_est = function() {
 get_state_prior_d = function() {
     state_abbr %>%
         mutate(year = 2020, inc = -1, two.term=0,
-               pr_state = -(abbr=="FL") + (abbr=="DE"),
+               pr_state = -(abbr=="NY") + (abbr=="DE"),
                vp_state = 0) %>%
         bind_rows(state_d, .) %>%
         group_by(state) %>%
