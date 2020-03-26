@@ -112,8 +112,8 @@ state_prior_pred = posterior_predict(state_model, newdata=state_prior_d2020)
 state_prior_mean = colMeans(state_prior_pred)
 state_x = apply(state_prior_pred, 2, function(x) x - mean(x))
 state_prior_cov = (t(state_x) %*% state_x) / (nrow(state_x) - 1)
-state_sd = sqrt(diag(state_prior_cov))
-state_prior_cov = diag(state_sd) %*% (0.9 + 0.1*diag(51)) %*% diag(state_sd)
+#state_sd = sqrt(diag(state_prior_cov))
+#state_prior_cov = diag(state_sd) %*% (0.9 + 0.1*diag(51)) %*% diag(state_sd)
 
 ###
 ### Fitting main model
