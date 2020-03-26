@@ -62,7 +62,7 @@ state_model_path = file.path(opt$model_dir, "state-prior")
 state_abbr = read_rds("output/state_data_2016.rdata") %>%
     select(state, abbr) %>%
     filter(!str_detect(state, "CD-"))
-state_regn = read_csv("data/historical/state_data_combined.csv") %>%
+state_regn = suppressMessages(read_csv("data/historical/state_data_combined.csv")) %>%
     select(abbr, regn=region) %>%
     distinct()
 state_regn$regn[state_regn$abbr=="TN"] = "South"

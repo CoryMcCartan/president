@@ -117,7 +117,7 @@ model {
     delta_firm ~ std_normal();
     
     // priors
-    sigma_natl ~ gamma(2, 2/0.02);
+    sigma_natl ~ gamma(3, 3/0.04);
     sigma_state ~ gamma(2, 2/0.01);
     natl_error ~ normal(prior_natl_poll_bias, prior_natl_poll_error);
     all_state_error ~ normal(prior_all_state_poll_bias, prior_all_state_poll_error);
