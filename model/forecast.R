@@ -84,7 +84,7 @@ polls_d %>%
     write_csv("docs/polls.csv")
 if (all.equal(old_polls, select(polls_d, date, state, national, firm, dem))) {
     cat("No new polls.\n")
-    alarm()
+    system("osascript -e beep"); system("osascript -e beep")
     Sys.sleep(10)
 }
 poll_errors = read_rds("output/poll_errors.rdata")

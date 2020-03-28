@@ -1,3 +1,4 @@
+trap "exit" INT
 Rscript model/forecast.R
 git add .
 git commit -m "Run."
