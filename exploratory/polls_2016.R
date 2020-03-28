@@ -109,9 +109,9 @@ imm = str_match(outf, "# Diagonal elements of inverse mass matrix:\n# ([ e\\-.,0
     str_split(", ", simplify=T) %>%
     parse_number
 
-sm = stan_model("stan/polls.stan")
-m = sampling(sm, data=model_d, chains=3, iter=1000, warmup=300, num_cores=4,
-             control=list(adapt_delta=0.95))
+#sm = stan_model("stan/polls.stan")
+#m = sampling(sm, data=model_d, chains=3, iter=1000, warmup=300, num_cores=4,
+#             control=list(adapt_delta=0.95))
 
 m = sm$sample(data=model_d, num_chains=3, num_samples=700, num_warmup=300,
               num_cores=4, adapt_delta=0.95, stepsize=stepsize, inv_metric=imm)
@@ -214,6 +214,7 @@ ggplot(evs, aes(dem_ev, fill=dem_ev >= 270)) +
     guides(fill=F) + 
     geom_vline(xintercept=232, lty="dashed")
 mean(evs$dem_ev >= 270)
+mean(evs$dem_ev == 269)
 mean(evs$dem_ev <= 232)
 
 state_est_pct = state_draws %>%
@@ -226,7 +227,7 @@ filter(d, year==2016) %>%
     left_join(state_est_pct, by="state") %>%
     mutate(err = dem_est - dem_act) %>%
     left_join(distinct(select(state_d, state=abbr, region)), by="state") %>%
-ggplot(aes(dem_est, dem_act, label=state, group=region, color=sign(dem_est-0.5))) +
+ggplot(aes(dem_est, err, label=state, group=region, color=sign(dem_est-0.5))) +
     #geom_smooth(method=lm, se=F, color="black", size=0.5) +
     scale_color_gradient2() +
     geom_abline(slope=1) +
@@ -264,7 +265,7 @@ ggplot(aes(TX, VA)) + geom_point(size=0.05, alpha=0.2) +
     geom_abline(slope=1)
 
 state_draws %>%
-    filter(.draw == sample(1:2100, 1), day == n_days) %>%
+    filter(.draw == sample(1:1800, 1), day == n_days) %>%
     mutate(winner = round(state_dem)) %>%
 plot_usmap("states", value="winner", data=.) +
     scale_fill_gradient2(midpoint=0.5) + #, limits=c(0.2, 0.8)) +

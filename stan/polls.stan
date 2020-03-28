@@ -117,17 +117,17 @@ model {
     delta_firm ~ std_normal();
     
     // priors
-    sigma_natl ~ gamma(3, 3/0.04);
-    sigma_state ~ gamma(2, 2/0.01);
+    sigma_natl ~ gamma(3, 3/0.06);
+    sigma_state ~ gamma(2, 2/0.02);
     natl_error ~ normal(prior_natl_poll_bias, prior_natl_poll_error);
     all_state_error ~ normal(prior_all_state_poll_bias, prior_all_state_poll_error);
     regn_error ~ normal(prior_regn_poll_bias, prior_regn_poll_error);
     state_error ~ std_normal();
     
     sd_firm ~ gamma(2, 2/0.05);
-    bias_rv ~ normal(prior_rv_bias, 0.03);
-    bias_lv ~ normal(prior_lv_bias, 0.03/lv_rv_ratio);
-    bias_a ~ normal(prior_a_bias, 0.03);
+    bias_rv ~ normal(prior_rv_bias, 0.04);
+    bias_lv ~ normal(prior_lv_bias, 0.04/lv_rv_ratio);
+    bias_a ~ normal(prior_a_bias, 0.04);
 }
 
 generated quantities {

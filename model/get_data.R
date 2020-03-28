@@ -51,7 +51,8 @@ get_elec_polls = function(write=F) {
                regn = if_else(national, "West", regn),
                date = as.character(date)) %>%
         select(abbr, regn, day, date, week, everything(), -state) %>%
-        mutate(state = match(abbr, state_abbr$abbr))    
+        mutate(state = match(abbr, state_abbr$abbr)) %>%
+        drop_na
 }
 
 get_gdp_est = function() {
@@ -63,7 +64,7 @@ get_gdp_est = function() {
         transmute(gdp_est = parse_number(Nowcast)) %>%
         pull
     
-    list(gdp_est=tail(nowcast, 1)/100, gdp_sd=sd(tail(nowcast, 4)/100))
+    list(gdp_est=tail(nowcast, 1)/100, gdp_sd=sd(tail(nowcast, 4)/100), n=4)
 }
 
 get_state_prior_d = function() {

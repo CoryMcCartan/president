@@ -77,10 +77,16 @@ source("model/get_data.R")
 
 # presidential approval, general election polls, and distribution of past polling errors
 pres_appr = get_approval() # mean pct. pt. gap appr-disappr
+old_polls = suppressMessages(read_csv("docs/polls.csv", col_types="cilcd"))
 polls_d = get_elec_polls()
 polls_d %>%
     select(date, state, national, firm, dem) %>%
     write_csv("docs/polls.csv")
+if (all.equal(old_polls, select(polls_d, date, state, national, firm, dem))) {
+    cat("No new polls.\n")
+    alarm()
+    Sys.sleep(10)
+}
 poll_errors = read_rds("output/poll_errors.rdata")
 poll_errors$prior_natl_poll_bias = 0
 poll_errors$prior_all_state_poll_bias = 0
@@ -88,7 +94,7 @@ poll_errors$prior_regn_poll_bias = 0
 
 # Q2 GDP forecast
 gdp_growth = get_gdp_est()
-gdp_samp = rnorm(100, gdp_growth$gdp_est, gdp_growth$gdp_sd)
+gdp_samp = rt(500, gdp_growth$n-1)*gdp_growth$gdp_sd + gdp_growth$gdp_est
 
 # past state results and other covariates
 state_d = suppressMessages(read_csv("data/historical/state_data_combined.csv"))
@@ -134,7 +140,7 @@ model_d = compose_data(polls_d, .n_name = n_prefix("N"),
                        prior_rv_bias = 0.011,
                        prior_lv_bias = 0.0,
                        prior_a_bias = 0.02,
-                       lv_rv_ratio = 5,
+                       lv_rv_ratio = 8,
                        poll_errors,
 )
 
