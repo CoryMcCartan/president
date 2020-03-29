@@ -214,7 +214,9 @@ evs = state_draws %>%
 sims = state_draws %>%
     filter(.draw %in% sample(1:opt$iter, 100), day == max(day)) %>%
     group_by(.draw) %>%
-    group_map(~ list(dem=as.integer(.$state_dem > 0.5), natl=natl_final[.y$.draw])) 
+    group_map(~ list(dem = as.integer(.$state_dem > 0.5), 
+                     natl = natl_final[.y$.draw],
+                     ev = evs[.y$.draw])) 
     
 prob_recount = state_draws %>%
     filter(day == max(day)) %>%
@@ -373,5 +375,5 @@ write_csv(st_history, fname, na="")
 if (from_date != Sys.Date()) quit("no")
 
 write_json(output, opt$output_file, auto_unbox=T, digits=7)
-write_json(sims, opt$sims_file, auto_unbox=T, digis=6)
+write_json(sims, opt$sims_file, auto_unbox=T, digis=4)
 
