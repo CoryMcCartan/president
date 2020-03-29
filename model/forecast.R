@@ -17,7 +17,7 @@ option_list = list(
                 help="Dry run, results not saved."),
     make_option("--date", type="character", default=as.character(Sys.Date()),
                 help="The date to estimate from."),
-    make_option("--iter", type="integer", default=2100,
+    make_option("--iter", type="integer", default=3000,
                 help="Number of MCMC iterations for voter intent estimation,
                       not including warmup iterations."),
     make_option("--chains", type="integer", default=2,
@@ -212,11 +212,37 @@ evs = state_draws %>%
 
 
 sims = state_draws %>%
-    filter(.draw %in% sample(1:opt$iter, 100), day == max(day)) %>%
+    #filter(.draw %in% sample(1:opt$iter, 1000), day == max(day)) %>%
+    filter(day == max(day)) %>%
     group_by(.draw) %>%
     group_map(~ list(dem = as.integer(.$state_dem > 0.5), 
                      natl = natl_final[.y$.draw],
                      ev = evs[.y$.draw])) 
+
+state_draws %>% 
+    filter(day == max(day)) %>%
+    left_join(state_ev, by="state") %>%
+    group_by(.draw) %>%
+    summarize(dem_ev = sum(if_else(state_dem > 0.5, ev, 0)),
+              win_FL = state_dem[match("FL", state)] > 0.5,
+              win_PA = state_dem[match("PA", state)] > 0.5,
+              win_MI = state_dem[match("MI", state)] > 0.5,
+              win_WI = state_dem[match("WI", state)] > 0.5) %>%
+    summarize(pr = mean(dem_ev >= 270),
+              pr_win_FL = sum(dem_ev >= 270 & win_FL) / sum(win_FL),
+              pr_lose_FL = sum(dem_ev >= 270 & !win_FL) / sum(!win_FL),
+              pr_win_PA = sum(dem_ev >= 270 & win_PA) / sum(win_PA),
+              pr_lose_PA = sum(dem_ev >= 270 & !win_PA) / sum(!win_PA),
+              pr_win_MI = sum(dem_ev >= 270 & win_MI) / sum(win_MI),
+              pr_lose_MI = sum(dem_ev >= 270 & !win_MI) / sum(!win_MI),
+              pr_win_WI = sum(dem_ev >= 270 & win_WI) / sum(win_WI),
+              pr_lose_WI = sum(dem_ev >= 270 & !win_WI) / sum(!win_WI),
+              pr_win_RB = sum(dem_ev >= 270 & win_WI & win_MI & win_PA) / 
+                  sum(win_WI & win_MI & win_PA),
+              pr_lose_RB = sum(dem_ev >= 270 & (!win_WI & !win_MI & !win_PA)) / 
+                  sum(!win_WI & !win_MI & !win_PA)
+              ) %>% t
+    
     
 prob_recount = state_draws %>%
     filter(day == max(day)) %>%
