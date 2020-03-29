@@ -304,6 +304,7 @@ output = append(as.list(entry), list(
     gdp_mean = gdp_growth$gdp_est,
     gdp_moe = gdp_growth$gdp_sd*1.4*1.645,
     pres_appr = plogis(pres_appr),
+    prob_recount = prob_recount,
     prior_natl_mean = mean(plogis(natl_prior_pred)),
     prior_natl_moe = sqrt(2)*1.645*sd(plogis(natl_prior_pred)),
     hist = map_int(0:538, ~ sum(evs == .))
