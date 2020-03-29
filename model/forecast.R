@@ -343,18 +343,10 @@ if (file.exists(opt$history_file)) {
 }
 write_csv(history, opt$history_file, na="")
 
-st_entry = state_draws %>% 
-    filter(day == max(day)) %>% 
-    group_by(state) %>%
-    summarize(date = from_date,
-              prob = mean(state_dem > 0.5),
-              dem_exp = median(state_dem),
-              dem_q05 = quantile(state_dem, 0.05),
-              dem_q25 = quantile(state_dem, 0.25),
-              dem_q75 = quantile(state_dem, 0.75),
-              dem_q95 = quantile(state_dem, 0.95),
-              recount = mean(abs(state_dem - 0.5) < 0.005))
-st_entry = mutate_if(st_entry, is.numeric, ~ round(., 4))
+st_entry = state_summary %>%
+    mutate(date = from_date) %>%
+    mutate_if(is.numeric, ~ round(., 4)) %>%
+    select(date, everything())
     
 fname = str_c(dirname(opt$history_file), "/state_", basename(opt$history_file))
 if (file.exists(fname)) {
