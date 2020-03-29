@@ -17,9 +17,9 @@ option_list = list(
                 help="Dry run, results not saved."),
     make_option("--date", type="character", default=as.character(Sys.Date()),
                 help="The date to estimate from."),
-    make_option("--iter", type="integer", default=2000,
+    make_option("--iter", type="integer", default=2100,
                 help="Number of MCMC iterations for voter intent estimation,
-                      including 500 warmup iterations."),
+                      not including warmup iterations."),
     make_option("--chains", type="integer", default=2,
                 help="Number of MCMC chains for voter intent estimation."),
     make_option("--recompile", action="store_true", default=F,
@@ -28,11 +28,14 @@ option_list = list(
                 help="The directory in which the models are stored"),
     make_option("--output_file", type="character", default="docs/estimate.json",
                 help="The file to save estimates to."),
+    make_option("--sims_file", type="character", default="docs/sims.json",
+                help="The file to save state simulations to."),
     make_option("--history_file", type="character", default="docs/history.csv",
                 help="The file to save model history to.")
 )
 opt = parse_args(OptionParser(option_list=option_list,
                               description="Forecast the 2020 U.S. presidential election."))
+opt$iter = 3*ceiling(opt$iter/3)
 
 suppressMessages(library(tibble))
 suppressMessages(library(dplyr))
@@ -68,6 +71,11 @@ state_regn = suppressMessages(read_csv("data/historical/state_data_combined.csv"
 state_regn$regn[state_regn$abbr=="TN"] = "South"
 state_regn$regn[state_regn$abbr=="WV"] = "South"
 
+state_pop = suppressMessages(read_csv("data/state-returns/1976-2016-president.csv")) %>% 
+    filter(year==2016) %>% 
+    select(state=state_po, votes=totalvotes) %>%
+    distinct()
+
 
 ###
 ### Download new polling data
@@ -82,8 +90,10 @@ polls_d = get_elec_polls()
 polls_d %>%
     select(date, state, national, firm, dem) %>%
     write_csv("docs/polls.csv")
-if (all.equal(old_polls, select(polls_d, date, state, national, firm, dem))) {
+if (from_date == Sys.Date() && 
+        all.equal(old_polls, select(polls_d, date, state, national, firm, dem))) {
     cat("No new polls.\n")
+    system("osascript -e 'display notification \"No new polls.\" with title \"Presidential Model\"'")
     system("osascript -e beep"); system("osascript -e beep")
     Sys.sleep(10)
 }
@@ -147,7 +157,7 @@ model_d = compose_data(polls_d, .n_name = n_prefix("N"),
 polls_model = get_polls_m(polls_model_path, opt$recompile)
 
 # TODO incorporate inv_metric stuff
-fit_polls = polls_model$sample(data=model_d, num_chains=3, num_samples=700, 
+fit_polls = polls_model$sample(data=model_d, num_chains=3, num_samples=opt$iter/3, 
                                num_warmup=300, num_cores=4, adapt_delta=0.97, 
                                stepsize=0.015)
 
@@ -201,6 +211,57 @@ evs = state_draws %>%
     pull
 
 
+sims = state_draws %>%
+    filter(.draw %in% sample(1:opt$iter, 100), day == max(day)) %>%
+    group_by(.draw) %>%
+    group_map(~ list(dem=as.integer(.$state_dem > 0.5), natl=natl_final[.y$.draw])) 
+    
+prob_recount = state_draws %>%
+    filter(day == max(day)) %>%
+    left_join(state_ev, by="state") %>%
+    group_by(.draw) %>%
+    mutate(total_ev = sum(if_else(state_dem > 0.5, ev, 0)),
+           recount = abs(state_dem - 0.5) < 0.005,
+           ev_marg = abs(total_ev - 269),
+           critical_st = ev >= ev_marg,
+           critical_recount = critical_st & recount) %>%
+    group_by(.draw) %>%
+    summarize(recount = max(critical_recount)) %>%
+    summarize(mean(recount)) %>%
+    pull
+    
+state_summary = state_draws %>%
+    filter(day == max(day)) %>%
+    select(-.chain, -.iteration, -day, -state_num) %>%
+    left_join(state_ev, by="state") %>%
+    group_by(.draw) %>%
+    mutate(total_ev = sum(if_else(state_dem > 0.5, ev, 0)),
+           marg = abs(state_dem - 0.5),
+           recount = marg < 0.005,
+           ev_marg = abs(total_ev - 269),
+           critical_st = ev >= ev_marg,
+           critical_recount = critical_st & recount) %>%
+    arrange(state_dem, .by_group=T) %>%
+    mutate(cuml_ev = cumsum(ev),
+           tipping_pt = lag(cuml_ev, default=0) <= 269 & cuml_ev >= 269) %>%
+    group_by(state) %>%
+    summarize(ev = ev[1],
+              prob = mean(state_dem > 0.5),
+              dem_q05 = quantile(state_dem, 0.05),
+              dem_q25 = quantile(state_dem, 0.25),
+              dem_exp = median(state_dem),
+              dem_q75 = quantile(state_dem, 0.75),
+              dem_q95 = quantile(state_dem, 0.95),
+              recount = mean(critical_st & recount),
+              tipping_pt = mean(tipping_pt)) %>%
+    left_join(state_pop, by="state") %>%
+    mutate(pr_decisive = tipping_pt / votes,
+           rel_voter_power = pr_decisive / mean(pr_decisive)) %>%
+    left_join(state_abbr, by=c("state"="abbr")) %>%
+    rename(state_name = state.y) %>%
+    select(state, state_name, everything(), -votes, -pr_decisive)
+
+
 entry = tibble(
     date = from_date,
     ev_exp = median(evs),
@@ -232,20 +293,17 @@ natl_intent_tbl = natl_draws %>%
               natl_q95 = quantile(natl_dem, 0.95)) %>%
     mutate(date = to_date(day))
 
-state_probs = state_draws %>%
-    filter(day == n_days) %>%
-    group_by(state) %>%
-    summarize(prob = mean(state_dem > 0.5)) %>%
-    left_join(state_abbr, by=c("state"="abbr")) %>%
-    left_join(state_ev, by="state") %>%
-    rename(state_name = state.y)
-
 output = append(as.list(entry), list(
     time = Sys.time(),
     n_polls = nrow(polls_d),
     natl_intent = natl_intent_tbl,
     firm_effects = firms,
-    states = state_probs,
+    states = state_summary,
+    gdp_mean = gdp_growth$gdp_est,
+    gdp_moe = gdp_growth$gdp_sd*1.4*1.645,
+    pres_appr = plogis(pres_appr),
+    prior_natl_mean = mean(plogis(natl_prior_pred)),
+    prior_natl_moe = sqrt(2)*1.645*sd(plogis(natl_prior_pred)),
     hist = map_int(0:538, ~ sum(evs == .))
 ))
 
@@ -265,6 +323,7 @@ with(output, cat(glue("
     ===========================================
     ")))
 cat("\n\n")
+system("osascript -e 'display notification \"Model run complete.\" with title \"Presidential Model\"'")
 
 if (opt$dry) quit("no")
 
@@ -282,6 +341,37 @@ if (file.exists(opt$history_file)) {
 }
 write_csv(history, opt$history_file, na="")
 
+st_entry = state_draws %>% 
+    filter(day == max(day)) %>% 
+    group_by(state) %>%
+    summarize(date = from_date,
+              prob = mean(state_dem > 0.5),
+              dem_exp = median(state_dem),
+              dem_q05 = quantile(state_dem, 0.05),
+              dem_q25 = quantile(state_dem, 0.25),
+              dem_q75 = quantile(state_dem, 0.75),
+              dem_q95 = quantile(state_dem, 0.95),
+              recount = mean(abs(state_dem - 0.5) < 0.005))
+st_entry = mutate_if(st_entry, is.numeric, ~ round(., 4))
+    
+fname = str_c(dirname(opt$history_file), "/state_", basename(opt$history_file))
+if (file.exists(fname)) {
+    st_history = bind_rows(
+        suppressMessages(read_csv(fname)),
+        st_entry
+    ) %>%
+        group_by(state, date) %>%
+        slice(n()) %>%
+        ungroup %>%
+        arrange(date)
+} else {
+    st_history = st_entry
+}
+write_csv(st_history, fname, na="")
+
 # only save full output if current run
 if (from_date != Sys.Date()) quit("no")
+
 write_json(output, opt$output_file, auto_unbox=T, digits=7)
+write_json(sims, opt$sims_file, auto_unbox=T, digis=6)
+

@@ -60,7 +60,9 @@ get_gdp_est = function() {
                         "research/policy/interactive/data/2020Q2.txt")
     nowcast = read_json(nowcast_url, simplifyVector=T) %>%
         as_tibble %>%
-        filter(Year != "") %>%
+        mutate(date = mdy(if_else(str_detect(Update, ", 2020"), 
+                                  Update, str_c(Update, ", 2020")))) %>%
+        filter(date <= from_date, Year != "") %>%
         transmute(gdp_est = parse_number(Nowcast)) %>%
         pull
     
