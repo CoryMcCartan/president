@@ -90,8 +90,8 @@ polls_d = get_elec_polls()
 polls_d %>%
     select(date, state, national, firm, dem) %>%
     write_csv("docs/polls.csv")
-if (from_date == Sys.Date() && 
-        all.equal(old_polls, select(polls_d, date, state, national, firm, dem))) {
+if ((from_date == Sys.Date()) && 
+        (all.equal(old_polls, select(polls_d, date, state, national, firm, dem)))) {
     cat("No new polls.\n")
     system("osascript -e 'display notification \"No new polls.\" with title \"Presidential Model\"'")
     system("osascript -e beep"); system("osascript -e beep")
