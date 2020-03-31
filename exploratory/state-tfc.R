@@ -104,3 +104,21 @@ ggplot(d %>% filter(!correct),
        aes(est.share, inc.share, color=correct, label=lbl)) + 
     geom_hline(yintercept=0.5) +
     geom_text(size=1.5)
+
+
+
+filter(state_d, year >= 2012) %>% 
+    transmute(state = abbr, 
+              year = year,
+              dem_win = dem > gop, 
+              margin = 100*abs((dem - gop)/(dem + gop)))  %>% 
+    pivot_wider(names_from=year, values_from=c(dem_win, margin)) %>%
+write_csv("docs/prev_results.csv", na="")
+
+
+
+
+
+
+
+
