@@ -110,9 +110,10 @@ ggplot(d %>% filter(!correct),
 filter(state_d, year >= 2012) %>% 
     transmute(state = abbr, 
               year = year,
-              dem_win = dem > gop, 
-              margin = 100*abs((dem - gop)/(dem + gop)))  %>% 
+              dem_win = as.numeric(dem > gop), 
+              margin = abs((dem - gop)/(dem + gop)))  %>% 
     pivot_wider(names_from=year, values_from=c(dem_win, margin)) %>%
+    mutate_if(is.numeric, ~ round(., 4)) %>%
 write_csv("docs/prev_results.csv", na="")
 
 
