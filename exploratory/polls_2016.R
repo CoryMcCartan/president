@@ -156,7 +156,7 @@ state_draws = raw_draws %>%
            #state = state_abbr$abbr[as.numeric(state)])
            state = states[as.numeric(state)])
 
-plot.state = "FL"
+plot.state = "MI"
 filter(state_draws, state==plot.state) %>%
 ggplot(aes(to_date(day), state_dem)) + 
     stat_lineribbon() +
