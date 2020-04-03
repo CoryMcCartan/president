@@ -14,9 +14,12 @@ get_approval = function() {
 
 get_elec_polls = function(write=F) {
     keep_rule = function(d, key) {
-        d$keep = all(c("Joseph R. Biden Jr.", "Donald Trump") 
-                     %in% d$candidate_name) &&
-            length(d$candidate_name) == 2 && !d$internal[1]
+        keep = all(c("Joseph R. Biden Jr.", "Donald Trump") 
+                     %in% d$candidate_name) & length(d$candidate_name) == 2
+        if (mdy(d$start_date[1]) >= ymd("2020-06-01"))
+            keep = keep & !d$internal[1]
+        
+        d$keep = keep
         d
     }
     
@@ -42,7 +45,8 @@ get_elec_polls = function(write=F) {
                type_rv = population=="rv" | population == "v",
                type_lv = population=="lv",
                type_a = population=="a") %>%
-        filter(date >= start_date, date <= from_date, !is.na(dem), firm != "Other") %>%
+        filter(date >= start_date, date <= from_date, !is.na(dem), 
+               !(firm == "Other" & date >= ymd("2020-08-01"))) %>%
         select(state, national, date, day, week, firm, sample, 
                type_rv, type_lv, type_a, dem, var_poll)
     
