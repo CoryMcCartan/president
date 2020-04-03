@@ -182,9 +182,16 @@ evs = state_draws %>%
 # IMPORTANCE SAMPLING
 
 {
-tgt_param = draws$`mu_natl[83]`
-lprior_now = with(model_d, dnorm(tgt_param, prior_natl_mean, prior_natl_sd, log=T))
-lprior_tgt = with(model_d, dt((tgt_param - prior_natl_mean)/prior_natl_sd, 3, log=T))
+#tgt_param = draws$`mu_natl[83]`
+#lprior_now = with(model_d, dnorm(tgt_param, prior_natl_mean, prior_natl_sd, log=T))
+#lprior_tgt = with(model_d, dt((tgt_param - prior_natl_mean)/prior_natl_sd, 3, log=T))
+    
+tgt_param = draws$bias_rv
+lprior_now = with(draws, dnorm(bias_rv, model_d$prior_rv_bias, 0.04, log=T) + 
+                      dnorm(bias_lv, 0, 0.04/model_d$lv_rv_ratio, log=T))
+lprior_tgt = with(draws, dnorm(bias_rv, -0.011, 0.01, log=T) + 
+                      dnorm(bias_lv, 0, 5e-3, log=T))
+    
 lratio = lprior_tgt - lprior_now
 qplot(lratio)
 r_eff = relative_eff(exp(-lratio), draws$.chain)
@@ -195,10 +202,13 @@ is_wgt = weights(psis_wgt, log=F)
 
 print(mean(natl_final))
 print(weighted.mean(natl_final, is_wgt))
-print(weighted.mean(natl_final, exp(lratio)))
 
 print(mean(evs >= 270))
 print(weighted.mean(evs >= 270, is_wgt))
+
+print(model_d$prior_rv_bias)
+print(mean(draws$bias_rv))
+print(weighted.mean(draws$bias_rv, is_wgt))
 
 qplot(natl_final, is_wgt) 
 qplot(evs, is_wgt) 

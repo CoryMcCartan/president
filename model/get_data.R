@@ -13,13 +13,18 @@ get_approval = function() {
 }
 
 get_elec_polls = function(write=F) {
+    keep_rule = function(d, key) {
+        d$keep = all(c("Joseph R. Biden Jr.", "Donald Trump") 
+                     %in% d$candidate_name) &&
+            length(d$candidate_name) == 2 && !d$internal[1]
+        d
+    }
+    
     polls_raw = suppressWarnings(suppressMessages(read_csv(elec_url)))
     polls_d = polls_raw %>%
         group_by(question_id) %>%
-        filter("Joseph R. Biden Jr." %in% candidate_name,
-               "Donald Trump" %in% candidate_name,
-               length(candidate_name) == 2,
-               is.na(partisan), !internal) %>%
+        group_modify(keep_rule) %>%
+        filter(keep) %>%
         ungroup %>%
         select(question_id, date1=start_date, date2=end_date, state, answer, pct,
                 sample_size, population, pollster, fte_grade, tracking) %>%
