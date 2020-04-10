@@ -14,7 +14,8 @@ get_approval = function() {
 
 get_elec_polls = function(write=F) {
     keep_rule = function(d, key) {
-        keep = all(c("Joseph R. Biden Jr.", "Donald Trump") 
+        keep = (mdy_hm(d$created_at[1]) <= as_datetime(from_date)+86399)
+        keep = keep & all(c("Joseph R. Biden Jr.", "Donald Trump") 
                      %in% d$candidate_name) & length(d$candidate_name) == 2
         if (mdy(d$start_date[1]) >= ymd("2020-06-01"))
             keep = keep & !d$internal[1]

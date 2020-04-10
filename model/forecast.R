@@ -50,7 +50,7 @@ suppressMessages(library(tidybayes))
 suppressMessages(library(jsonlite))
 
 election_day = as.Date("2020-11-03")
-start_date = ymd("2020-03-04")
+start_date = ymd("2020-03-21")
 from_date = as.Date(opt$date)
 n_days = ceiling(as.numeric(election_day - start_date) / 3) + 1
 n_weeks = ceiling(as.numeric(election_day - start_date) / 21) + 1
@@ -97,6 +97,8 @@ if (from_date == Sys.Date() &&
     system("osascript -e beep"); system("osascript -e beep")
     Sys.sleep(10)
 }
+cat(nrow(polls_d))
+cat(" polls found.\n")
 poll_errors = read_rds("output/poll_errors.rdata")
 poll_errors$prior_natl_poll_bias = 0
 poll_errors$prior_all_state_poll_bias = 0
@@ -144,7 +146,7 @@ model_d = compose_data(polls_d, .n_name = n_prefix("N"),
                        week_frac,
                        week_day = floor(wnum) + 1,
                        prior_natl_mean = mean(natl_prior_pred), 
-                       prior_natl_sd = sqrt(2)*sd(natl_prior_pred),
+                       prior_natl_sd = sd(natl_prior_pred),
                        prior_state_mean = state_prior_mean, 
                        prior_state_cov = state_prior_cov,
                        prior_rv_bias = 0.011,
@@ -308,7 +310,7 @@ output = append(as.list(entry), list(
     pres_appr = plogis(pres_appr),
     prob_recount = prob_recount,
     prior_natl_mean = mean(plogis(natl_prior_pred)),
-    prior_natl_moe = sqrt(2)*1.645*sd(plogis(natl_prior_pred)),
+    prior_natl_moe = 1.645*sd(plogis(natl_prior_pred)),
     hist = map_int(0:538, ~ sum(evs == .))
 ))
 
