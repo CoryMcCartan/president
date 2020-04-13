@@ -1,10 +1,10 @@
 date,state,national,firm,dem
 2020-03-21,48,TRUE,Ipsos,0.5384615384615384
 2020-03-23,48,TRUE,YouGov,0.5227272727272727
-2020-03-21,23,FALSE,Baldwin Wallace University/Oakland University/Ohio Northern University,0.5284916201117318
-2020-03-21,36,FALSE,Baldwin Wallace University/Oakland University/Ohio Northern University,0.47613762486126526
-2020-03-21,39,FALSE,Baldwin Wallace University/Oakland University/Ohio Northern University,0.489010989010989
-2020-03-21,49,FALSE,Baldwin Wallace University/Oakland University/Ohio Northern University,0.5005574136008919
+2020-03-21,23,FALSE,Baldwin Wallace University,0.5284916201117318
+2020-03-21,36,FALSE,Baldwin Wallace University,0.47613762486126526
+2020-03-21,39,FALSE,Baldwin Wallace University,0.489010989010989
+2020-03-21,49,FALSE,Baldwin Wallace University,0.5005574136008919
 2020-03-23,48,TRUE,Fox News/Beacon Research/Shaw & Co. Research,0.550561797752809
 2020-03-25,48,TRUE,YouGov,0.5348837209302325
 2020-03-24,48,TRUE,ABC News/Washington Post,0.5319148936170213
@@ -36,3 +36,7 @@ date,state,national,firm,dem
 2020-04-06,48,TRUE,YouGov,0.550561797752809
 2020-04-02,48,TRUE,Change Research,0.48863636363636365
 2020-04-06,48,TRUE,Fox News/Beacon Research/Shaw & Co. Research,0.5
+2020-03-25,45,FALSE,Y2 Analytics,0.47126436781609193
+2020-04-07,48,TRUE,Garin-Hart-Yang Research Group,0.5376344086021505
+2020-04-07,23,FALSE,Garin-Hart-Yang Research Group,0.5494505494505495
+2020-04-07,49,FALSE,Garin-Hart-Yang Research Group,0.5052631578947369
