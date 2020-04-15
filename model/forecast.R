@@ -45,6 +45,7 @@ suppressMessages(library(stringr))
 suppressMessages(library(forcats))
 suppressMessages(library(readr))
 suppressMessages(library(lubridate))
+suppressMessages(library(cli))
 suppressMessages(library(glue))
 suppressMessages(library(tidybayes))
 suppressMessages(library(jsonlite))
@@ -80,11 +81,12 @@ state_pop = suppressMessages(read_csv("data/state-returns/1976-2016-president.cs
 ###
 ### Download new polling data
 ###
-cat("Downloading data.\n")
+cli_h1("Downloading data")
 source("model/get_data.R")
 
 # presidential approval, general election polls, and distribution of past polling errors
 pres_appr = get_approval() # mean pct. pt. gap appr-disappr
+cli_alert_success("Presidential approval polling downloaded.")
 old_polls = suppressMessages(read_csv("docs/polls.csv", col_types="cilcd"))
 polls_d = get_elec_polls()
 polls_d %>%
@@ -92,13 +94,12 @@ polls_d %>%
     write_csv("docs/polls.csv")
 if (from_date == Sys.Date() && 
         isTRUE(all.equal(old_polls, select(polls_d, date, state, national, firm, dem)))) {
-    cat("No new polls.\n")
+    cli_alert_warning("No new polls.")
     system("osascript -e 'display notification \"No new polls.\" with title \"Presidential Model\"'")
     system("osascript -e beep"); system("osascript -e beep")
     Sys.sleep(10)
 }
-cat(nrow(polls_d))
-cat(" polls found.\n")
+cli_alert_success("{nrow(polls_d)} election poll{?s} downloaded.")
 poll_errors = read_rds("output/poll_errors.rdata")
 poll_errors$prior_natl_poll_bias = 0
 poll_errors$prior_all_state_poll_bias = 0
@@ -107,6 +108,7 @@ poll_errors$prior_regn_poll_bias = 0
 # Q2 GDP forecast
 gdp_growth = get_gdp_est()
 gdp_samp = rt(500, gdp_growth$n-1)*gdp_growth$gdp_sd + gdp_growth$gdp_est
+cli_alert_success("GDP data downloaded.")
 
 # past state results and other covariates
 state_d = suppressMessages(read_csv("data/historical/state_data_combined.csv"))
@@ -116,7 +118,7 @@ state_prior_d2020 = get_state_prior_d()
 ###
 ### Fitting prior model
 ###
-cat("Building prior.\n")
+cli_h1("Building prior")
 suppressMessages(library(cmdstanr))
 suppressMessages(library(rstanarm))
 options(mc.cores=4)
@@ -124,19 +126,21 @@ source("model/get_models.R")
 
 natl_model = get_natl_prior_m(natl_model_path, opt$recompile)
 natl_prior_pred = -as.numeric(posterior_predict(natl_model, newdata=natl_prior_d2020))
+cli_alert_success("National prior predictions made.")
 
 state_model = get_state_prior_m(state_model_path, state_d, opt$recompile)
 state_prior_pred = posterior_predict(state_model, newdata=state_prior_d2020)
 state_prior_mean = colMeans(state_prior_pred)
 state_x = apply(state_prior_pred, 2, function(x) x - mean(x))
 state_prior_cov = (t(state_x) %*% state_x) / (nrow(state_x) - 1)
+cli_alert_success("State prior predictions made.")
 #state_sd = sqrt(diag(state_prior_cov))
 #state_prior_cov = diag(state_sd) %*% (0.9 + 0.1*diag(51)) %*% diag(state_sd)
 
 ###
 ### Fitting main model
 ###
-cat("Fitting main model.\n")
+cli_h1("Fitting main model")
 
 model_d = compose_data(polls_d, .n_name = n_prefix("N"),
                        N_state = nrow(state_abbr),
@@ -157,17 +161,20 @@ model_d = compose_data(polls_d, .n_name = n_prefix("N"),
 )
 
 polls_model = get_polls_m(polls_model_path, opt$recompile)
+cli_alert_success("Model loaded.")
 
 # TODO incorporate inv_metric stuff
 fit_polls = polls_model$sample(data=model_d, num_chains=3, num_samples=opt$iter/3, 
                                num_warmup=300, num_cores=4, adapt_delta=0.97, 
                                stepsize=0.015)
+cli_alert_success("Model successfully fit.")
 
 raw_draws = posterior::as_draws_df(fit_polls$draws())
 
 ###
 ### Output predictions
 ###
+cli_h1("Saving predictions")
 
 natl_draws = raw_draws %>%
     select(.chain, .iteration, .draw, starts_with("natl_dem")) %>%
@@ -267,6 +274,7 @@ state_summary = state_draws %>%
     rename(state_name = state.y) %>%
     select(state, state_name, everything(), -votes, -pr_decisive)
 
+cli_alert_success("Outputs prepared.")
 
 entry = tibble(
     date = from_date,
@@ -374,3 +382,5 @@ if (from_date != Sys.Date()) quit("no")
 write_json(output, opt$output_file, auto_unbox=T, digits=7)
 write_json(sims, opt$sims_file, auto_unbox=T, digis=4)
 
+cli_alert_success("Model outputs saved.")
+cat("\n")
