@@ -9,3 +9,4 @@
 *.swp
 stan/polls
 stan/polls_warmup-*.csv
+.httr-oauth
