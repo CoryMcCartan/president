@@ -83,7 +83,7 @@ get_state_prior_d = function() {
     state_abbr %>%
         mutate(year = 2020, inc = -1, two.term=0,
                pr_state = -(abbr=="NY") + (abbr=="DE"),
-               vp_state = 0) %>%
+               vp_state = -(abbr=="IN") + (abbr=="??")) %>%
         bind_rows(state_d, .) %>%
         group_by(state) %>%
         fill(id, region) %>%
