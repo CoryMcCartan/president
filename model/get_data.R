@@ -77,7 +77,9 @@ get_gdp_est = function() {
         transmute(gdp_est = parse_number(Nowcast)) %>%
         pull
     
-    list(gdp_est=tail(nowcast, 1)/100, gdp_sd=sd(tail(nowcast, 4)/100), n=4)
+    list(gdp_est=tail(nowcast, 1)/100,
+         gdp_sd=0.5*0.15 + 0.5*sd(tail(nowcast, 5)/100), 
+         n=5)
 }
 
 get_state_prior_d = function() {
