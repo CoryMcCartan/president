@@ -78,7 +78,7 @@ get_gdp_est = function() {
         pull
     
     list(gdp_est=tail(nowcast, 1)/100,
-         gdp_sd=0.5*0.15 + 0.5*sd(tail(nowcast, 5)/100), 
+         gdp_sd=0.5*0.1 + 0.5*sd(tail(nowcast, 5)/100), 
          n=5)
 }
 
