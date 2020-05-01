@@ -107,7 +107,7 @@ ggplot(aes(1000*spending_pc_biden, 1000*spending_pc_trump, size=rel_voter_power,
 
 state_d %>%
     pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
-ggplot(aes(tipping_pt+1e-3, spending_trump, size=rel_voter_power, 
+ggplot(aes(tipping_pt+1e-3, spending_biden, size=rel_voter_power, 
            color=prob, label=abbr)) +
     geom_point() +
     geom_text(size=2, color="black") +
@@ -130,12 +130,21 @@ ggplot(aes(spending_biden/spending_trump, tipping_pt+1e-4, size=rel_voter_power,
 state_d %>%
     pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
     filter(tipping_pt > 0) %>%
-    lm(log(spending_trump) ~ qlogis(tipping_pt) + qlogis(prob), data=.) %>%
+    lm(log(spending_trump) ~ qlogis(tipping_pt) + qlogis(prob) + log(votes), data=.) %>%
+    summary
+state_d %>%
+    pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
+    filter(tipping_pt > 0) %>%
+    lm(log(spending_biden) ~ qlogis(tipping_pt) + qlogis(prob) + log(votes), data=.) %>%
     summary
 
 state_d %>%
     pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
     filter(rel_voter_power > 0) %>%
-    qplot(qlogis(1-prob), log(spending_pc_trump), data=.)
     lm(log(spending_pc_trump) ~ log(rel_voter_power) + qlogis(prob), data=.) %>%
     summary 
+    qplot(qlogis(1-prob), log(spending_pc_trump), data=.)
+    
+state_d %>%
+    pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
+    qplot(qlogis(1e-5+prob), log(spending_pc_trump), data=.)
