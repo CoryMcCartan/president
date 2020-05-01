@@ -12,7 +12,7 @@ get_approval = function() {
         pull
 }
 
-get_elec_polls = function(write=F) {
+get_elec_polls = function(write=F, min_date=ymd("2020-03-01")) {
     keep_rule = function(d, key) {
         keep = (mdy_hm(d$created_at[1]) <= as_datetime(from_date)+86399)
         keep = keep & all(c("Joseph R. Biden Jr.", "Donald Trump") 
@@ -26,6 +26,7 @@ get_elec_polls = function(write=F) {
     
     polls_raw = suppressWarnings(suppressMessages(read_csv(elec_url)))
     polls_d = polls_raw %>%
+        filter(mdy(start_date) >= min_date) %>%
         group_by(question_id) %>%
         group_modify(keep_rule) %>%
         filter(keep) %>%
