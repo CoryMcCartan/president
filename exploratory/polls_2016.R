@@ -17,7 +17,7 @@ to_date = function(day)  election - 3*(n_days - day + 1)
 state_d = suppressMessages(read_csv("data/historical/state_data_combined.csv"))
 states = distinct(select(state_d, state=abbr)) %>% pull 
 
-run_date = ymd("2016-08-20")
+run_date = ymd("2016-11-08")
 
 state_reg = read_csv("data/historical/state_data_combined.csv") %>%
     select(state=abbr, regn=region) %>%
@@ -45,7 +45,7 @@ polls_d = suppressMessages(read_csv("data/polls/president_general_polls_2016.csv
            type_rv = population=="rv" | population == "v",
            type_lv = population=="lv",
            type_a = population=="a") %>%
-    filter(date >= start_date, !is.na(n_dem), !type_a, firm != "Other") %>%
+    filter(date >= start_date, !is.na(n_dem), firm != "Other") %>%
     filter(date <= run_date) %>%
     left_join(state_reg, by="state") %>%
     select(state, regn, national, date, day, week, firm, sample, 
@@ -76,15 +76,15 @@ model_d = compose_data(polls_d, .n_name = n_prefix("N"),
                        D_W = ceiling(n_days/n_weeks),
                        week_frac,
                        week_day = floor(wnum) + 1,
-                       prior_natl_mean = -0.043, # from basic-tfc.R
-                       prior_natl_sd = 1.5*0.09451, # from "
+                       prior_natl_mean = mean(pred_16), # from basic-tfc.R
+                       prior_natl_sd = sd(pred_16),     # from   "
                        prior_state_mean = colMeans(spred_16), # from state-tfc.R
-                       prior_state_cov = 1.5*xcov,
+                       prior_state_cov = xcov,
                        #prior_state_cov = (0.08^2)*diag(N_state),
                        prior_rv_bias = 0.011,
                        prior_lv_bias = 0.0,
                        prior_a_bias = 0.02,
-                       lv_rv_ratio = 5,
+                       lv_rv_ratio = 8,
                        poll_errors,
                        )
 #model_d$state = coalesce(model_d$state, 1) # fill natl polls (state=NA) with 1

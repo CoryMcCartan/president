@@ -42,7 +42,7 @@ m4 = stan_lmer(dem ~ ldem + l2dem + (ldem+l2dem|region) + (1|region:year) +
                    pr_state + vp_state + lpr_state + l2pr_state + lvp_state,
                data=d_fit, chains=1, warmup=500, iter=1700, prior=cauchy())
 m5 = stan_lmer(dem ~ ldem + l2dem + (ldem+l2dem|region) + (1|region:year) + 
-                   inc*ldem*two.term + (region|year) +
+                   inc*ldem*two.term +
                    pr_state + vp_state + lpr_state + l2pr_state + lvp_state,
                data=d_fit, chains=1, warmup=500, iter=1700, prior=cauchy())
 
@@ -61,8 +61,8 @@ d %>%
     ungroup %>%
     mutate(fitted = colMeans(posterior_predict(m5, newdata=.))) %>%
     filter(year==2016) %>%
-ggplot(aes(fitted, dem, label=str_c(abbr, year %% 100),
-              color=sign(dem)==sign(fitted))) +
+ggplot(aes(fitted - 0.04571, dem + 0.044, label=str_c(abbr, year %% 100),
+              color=sign(dem + 0.044)==sign(fitted - 0.04571))) +
     guides(color=F) +
     geom_abline(slope=1) +
     xlim(NA, 1.2) +

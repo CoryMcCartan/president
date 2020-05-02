@@ -2,16 +2,17 @@ library(tidyverse)
 library(rstanarm)
 
 d_tfc = read.csv("data/historical/tfc.csv") %>%
-    select(-X,-X.1)
+    select(-X,-X.1) %>%
+    mutate(inc_vote = qlogis(vote/100))
 
-tfc_m = stan_lm(vote ~ q2_growth + approval + incumbent, data=d_tfc[-1,], 
+tfc_m = stan_lm(inc_vote ~ q2_growth + approval + incumbent, data=d_tfc[-1,], 
              prior=R2(location=0.8), chains=1, iter=1000, 
              control=list(adapt_delta=0.999))
 
 d.2020 = expand.grid(q2_growth=seq(-3, 3, 0.15), approval=seq(-20, 10, 0.75), 
                      incumbent = 0)
 
-d.2020$pred = colMeans(posterior_predict(m, d.2020) >= 50)
+d.2020$pred = colMeans(posterior_predict(tfc_m, d.2020) >= 50)
 
 ggplot(d.2020) + 
     geom_tile(aes(x=approval, y=q2_growth, fill=pred)) +
@@ -21,8 +22,8 @@ ggplot(d.2020) +
 
 ggsave("heatmap.png", width=6, height=5)
 
-pred_16 = posterior_predict(m, d_tfc[1,])
-mean(qlogis(pred_16/100))
-sd(qlogis(pred_16/100))
+pred_16 = posterior_predict(tfc_m, d_tfc[1,])
+mean(pred_16)
+sd(pred_16)
 
 
