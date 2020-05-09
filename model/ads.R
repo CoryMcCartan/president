@@ -131,6 +131,7 @@ state_d %>%
     pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
     filter(tipping_pt > 0) %>%
     lm(log(spending_trump) ~ qlogis(tipping_pt) + qlogis(prob) + log(votes), data=.) %>%
+    anova
     summary
 state_d %>%
     pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
