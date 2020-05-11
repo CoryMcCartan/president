@@ -5,6 +5,9 @@ suppressMessages(library(jsonlite))
 suppressMessages(library(usmap))
 suppressMessages(library(httr))
 
+th = theme_minimal(base_family="Overpass", base_size=12) +
+    theme(plot.title=element_text(face="bold"))
+
 # setup basic data
 state_abbr = read_rds("output/state_data_2016.rdata") %>%
     select(state, abbr) %>%
@@ -37,7 +40,8 @@ get_url = function(cand_id, num=1000)  {
                    "ad_type=POLITICAL_AND_ISSUE_ADS&",
                    "search_page_ids=[{paste0(cand_id, collapse=',')}]&",
                    "ad_reached_countries=['US']&",
-                   "fields=id,page_id,ad_delivery_start_time,ad_delivery_stop_time,spend,region_distribution,demographic_distribution,impressions&",
+                   "fields=id,page_id,ad_delivery_start_time,ad_delivery_stop_time,"
+                   "spend,region_distribution,demographic_distribution,impressions&",
                    "limit={num}") %>%
         xml2::url_escape(reserved="=&/:?,|")
 }
@@ -95,6 +99,58 @@ state_d = read_csv("docs/state_history.csv") %>%
     select(abbr=state, ev, prob, dem_exp, tipping_pt, rel_voter_power) %>%
     right_join(by_region, by="abbr")
 
+d %>%
+    group_by(candidate) %>%
+    summarize(sum(cost), sum(views, na.rm=T))
+
+state_d %>%
+    group_by(candidate) %>%
+    summarize(spending=sum(spending)) %>%
+    mutate(candidate = str_to_title(candidate)) %>%
+    rename_all(str_to_title) %>%
+ggplot(aes(Candidate, Spending, fill=Candidate)) +
+    geom_col() +
+    scale_fill_manual(values=c("#6677ff", "#ff7766")) +
+    scale_y_continuous(labels=scales::dollar) +
+    guides(fill=F) +
+    labs(title="Big spender", x=NULL,
+         subtitle="Facebook ad spending by candidate, May 2–9") +
+    th +
+    theme(panel.grid.major.x=element_blank(),
+          axis.text.x=element_text(size=11, face="bold"))
+ggsave("~/Documents/Code/website/content/posts/2020-05-ads/total_spending.svg",
+       width=5, height=3, bg="transparent")
+
+state_d %>%
+ggplot(aes(dem_exp, 1000*spending_pc, color=candidate, label=abbr)) +
+    geom_smooth(method=lm, se=F) +
+    geom_text() +
+    scale_color_manual(values=c("#6677ff", "#ff7766")) +
+    scale_y_continuous(labels=scales::dollar, trans="log") +
+    scale_x_continuous(labels=scales::percent) +
+    labs(title="Preaching to the choir", x="Projected Democratic vote share",
+         y="Spending per 1,000 voters",
+         subtitle="Ad spending per 1,000 voters versus projected Democratic vote share") +
+    guides(color=F) +
+    th
+ggsave("~/Documents/Code/website/content/posts/2020-05-ads/spending_dem.svg",
+       width=6, height=4, bg="transparent")
+
+state_d %>%
+ggplot(aes(rel_voter_power+1e-3, 1000*spending_pc, color=candidate, label=abbr)) +
+    geom_smooth(method=lm, se=F) +
+    geom_point() +
+    scale_color_manual(values=c("#6677ff", "#ff7766")) +
+    scale_y_continuous(labels=scales::dollar, trans="log") +
+    scale_x_continuous(labels=scales::number, trans="log") +
+    labs(title="It’s not about the swing states", x="Relative voter power",
+         y="Spending per 1,000 voters",
+         subtitle="Ad spending per 1,000 voters versus relative voter power") +
+    guides(color=F) +
+    th
+ggsave("~/Documents/Code/website/content/posts/2020-05-ads/spending_pow.svg",
+       width=6, height=4, bg="transparent")
+
 state_d %>%
     pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
 ggplot(aes(1000*spending_pc_biden, 1000*spending_pc_trump, size=rel_voter_power, 
@@ -148,4 +204,7 @@ state_d %>%
     
 state_d %>%
     pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
-    qplot(qlogis(1e-5+prob), log(spending_pc_trump), data=.)
+    qplot(qlogis(1e-5+0.999*prob), log(spending_pc_trump), data=.)
+state_d %>%
+    pivot_wider(names_from=candidate, values_from=c(spending, spending_pc)) %>%
+    qplot(rel_voter_power, spending_pc_trump, data=.)
