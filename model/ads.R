@@ -40,7 +40,7 @@ get_url = function(cand_id, num=1000)  {
                    "ad_type=POLITICAL_AND_ISSUE_ADS&",
                    "search_page_ids=[{paste0(cand_id, collapse=',')}]&",
                    "ad_reached_countries=['US']&",
-                   "fields=id,page_id,ad_delivery_start_time,ad_delivery_stop_time,"
+                   "fields=id,page_id,ad_delivery_start_time,ad_delivery_stop_time,",
                    "spend,region_distribution,demographic_distribution,impressions&",
                    "limit={num}") %>%
         xml2::url_escape(reserved="=&/:?,|")
