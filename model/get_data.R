@@ -40,13 +40,14 @@ get_elec_polls = function(write=F, min_date=ymd("2020-03-01")) {
                week = n_weeks - ceiling(as.numeric(election_day - date) / 21),
                dem = Biden / (Biden + Trump),
                gop = Trump / (Biden + Trump),
+               sample_size = coalesce(sample_size, 400),
                sample = round(sample_size * (Biden + Trump)/100),
                logit_inflate = 1/dem + 1/(1 - dem),
                var_poll = logit_inflate^2 * dem * (1 - dem) / sample,
                firm = as.character(fct_lump(pollster, 50)),
-               type_rv = population=="rv" | population == "v",
                type_lv = population=="lv",
-               type_a = population=="a") %>%
+               type_a = population=="a",
+               type_rv = !type_lv & !type_a) %>% #population=="rv" | population == "v") %>%
         filter(date >= start_date, date <= from_date, !is.na(dem), 
                !(firm == "Other" & date >= ymd("2020-08-01"))) %>%
         select(state, national, date, day, week, firm, sample, 
