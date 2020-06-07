@@ -97,7 +97,7 @@ state_d2 = haven::read_dta("data/historical/state_level_data.dta") %>%
 w1972 = read_html("https://en.wikipedia.org/wiki/1972_United_States_presidential_election")
 d1972 = w1972 %>% 
     html_nodes("table.wikitable") %>%
-    `[[`(5) %>%
+    `[[`(7) %>%
     html_table(header=F, fill=F) %>%
     slice(-1:-2, -54) %>%
     transmute(state = if_else(X1=="D.C.", "District of Columbia", X1),
@@ -108,7 +108,7 @@ d1972 = w1972 %>%
            dem = dem/(dem + as.numeric(X4)),
            gop = 1 - dem) %>%
     as_tibble %>%
-    left_join(distinct(select(d, state, abbr, id, region)), by="state")
+    left_join(distinct(select(state.returns, state, abbr, id, region)), by="state")
 w1968 = read_html("https://en.wikipedia.org/wiki/1968_United_States_presidential_election")
 d1968 = w1968 %>% 
     html_nodes("table.wikitable") %>%
@@ -123,11 +123,11 @@ d1968 = w1968 %>%
            dem = dem/(dem + as.numeric(X4)),
            gop = 1 - dem) %>%
     as_tibble %>%
-    left_join(distinct(select(d, state, abbr, id, region)), by="state")
+    left_join(distinct(select(state.returns, state, abbr, id, region)), by="state")
 
 home_states = read_csv("data/historical/home_states.csv")
 
-ev_winner = state_d %>% 
+ev_winner = state.returns %>% 
     group_by(year) %>%
     summarize(inc.ev = sum(ev[inc.share > 0.5]))
 
