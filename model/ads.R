@@ -30,7 +30,7 @@ get_token = function() {
     app_secret = Sys.getenv("FB_PRES_2020_SECRET")
     fb_app = oauth_app(appname="facebook", key=app_id, secret=app_secret)
     resp = oauth2.0_token(oauth_endpoints("facebook"), fb_app, scope="public_profile",
-                   type="application/x-www-form-urlencoded", cache=TRUE)
+                   type="application/x-www-form-urlencoded", cache=T)
     fromJSON(names(resp$credentials))$access_token
 }
 
