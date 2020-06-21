@@ -17,8 +17,9 @@ get_elec_polls = function(write=F, min_date=ymd("2020-03-01")) {
         keep = (mdy_hm(d$created_at[1]) <= as_datetime(from_date)+86399)
         keep = keep & all(c("Joseph R. Biden Jr.", "Donald Trump") 
                      %in% d$candidate_name) & length(d$candidate_name) == 2
-        if (mdy(d$start_date[1]) >= ymd("2020-06-01"))
-            keep = keep & !d$internal[1] & str_detect(d$fte_grade[1], "[AB][+-]?")
+        keep = keep & (!d$internal[1] & 
+            (!is.na(d$state) | str_detect(d$fte_grade[1], "[AB][+-]?"))) |
+            (mdy(d$start_date[1]) <= ymd("2020-06-01") & d$population == "lv")
         
         d$keep = keep
         d
