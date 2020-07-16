@@ -64,6 +64,6 @@ get_polls_m = function(path, recompile=F) {
     if (recompile && file.exists(compiled_model))
         file.remove(compiled_model)
 
-    cmdstan_model("stan/polls.stan", compiler_flags="CXXFLAGS += -Ofast")
+    cmdstan_model("stan/polls.stan")#, compiler_flags="CXXFLAGS += -Ofast")
 }
 

@@ -164,9 +164,9 @@ polls_model = get_polls_m(polls_model_path, opt$recompile)
 cli_alert_success("Model loaded.")
 
 # TODO incorporate inv_metric stuff
-fit_polls = polls_model$sample(data=model_d, num_chains=3, num_samples=opt$iter/3, 
-                               num_warmup=300, num_cores=4, adapt_delta=0.97, 
-                               stepsize=0.015)
+fit_polls = polls_model$sample(data=model_d, chains=3, iter_sampling=opt$iter/3, 
+                               iter_warmup=300, parallel_chains=3, adapt_delta=0.97, 
+                               step_size=0.015)
 cli_alert_success("Model successfully fit.")
 
 raw_draws = posterior::as_draws_df(fit_polls$draws())
