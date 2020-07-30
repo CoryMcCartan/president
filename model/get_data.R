@@ -69,6 +69,8 @@ get_elec_polls = function(write=F, min_date=ymd("2020-03-01")) {
 }
 
 get_gdp_est = function() {
+    return(list(gdp_est=-0.329, gdp_sd=0.01, n=50000))
+
     nowcast_url = str_c("https://www.newyorkfed.org/medialibrary/media/",
                         "research/policy/interactive/data/2020Q2.txt")
     nowcast = read_json(nowcast_url, simplifyVector=T) %>%
