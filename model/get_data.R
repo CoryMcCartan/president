@@ -69,10 +69,10 @@ get_elec_polls = function(write=F, min_date=ymd("2020-03-01")) {
 }
 
 get_gdp_est = function() {
-    return(list(gdp_est=-0.329, gdp_sd=0.01, n=50000))
+    q2 = list(gdp_est=-0.329, gdp_sd=0.01)
 
     nowcast_url = str_c("https://www.newyorkfed.org/medialibrary/media/",
-                        "research/policy/interactive/data/2020Q2.txt")
+                        "research/policy/interactive/data/2020Q3.txt")
     nowcast = read_json(nowcast_url, simplifyVector=T) %>%
         as_tibble %>%
         mutate(date = mdy(if_else(str_detect(Update, ", 2020"), 
@@ -81,9 +81,9 @@ get_gdp_est = function() {
         transmute(gdp_est = parse_number(Nowcast)) %>%
         pull
     
-    list(gdp_est=tail(nowcast, 1)/100,
-         gdp_sd=0.4*0.15 + 0.6*sd(tail(nowcast, 5)/100), 
-         n=5)
+    list(gdp_est=0.5*tail(nowcast, 1)/100 + 0.5*q2$gdp_est,
+         gdp_sd=sqrt((0.2*0.1 + 0.3*sd(tail(nowcast, 5)/100))^2 + 0.5*q2$gdp_sd^2), 
+         n=2*5)
 }
 
 get_state_prior_d = function() {
