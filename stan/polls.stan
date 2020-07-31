@@ -110,15 +110,15 @@ model {
     logit_dem ~ normal(val_poll, sqrt(var_poll + nonsamp_var)); // modified binom. approx.
     
     // reparametrization
-    delta_natl ~ std_normal();
+    delta_natl ~ student_t(4, 0, 1);
     for (w in 1:W) {
         delta_state[w] ~ std_normal();
     }
     delta_firm ~ std_normal();
     
     // priors
-    sigma_natl ~ gamma(3, 3/0.06);
-    sigma_state ~ gamma(2, 2/0.02);
+    sigma_natl ~ gamma(4, 4/0.06);
+    sigma_state ~ gamma(2, 2/0.03);
     natl_error ~ normal(prior_natl_poll_bias, prior_natl_poll_error);
     all_state_error ~ normal(prior_all_state_poll_bias, prior_all_state_poll_error);
     regn_error ~ normal(prior_regn_poll_bias, prior_regn_poll_error);
