@@ -228,6 +228,14 @@ sims = state_draws %>%
                      natl = natl_final[.y$.draw],
                      ev = evs[.y$.draw])) 
 
+state_draws %>%
+    filter(day == max(day)) %>%
+    select(-.chain, -.iteration, -state_num, -day) %>%
+    pivot_wider(names_from=state, values_from=state_dem) %>%
+    mutate(natl=natl_final, ev=evs) %>%
+    select(draw=.draw, ev, natl, everything()) %>%
+    write_csv("docs/draws_mat.csv")
+
     
 prob_recount = state_draws %>%
     filter(day == max(day)) %>%
