@@ -1,2 +1,2 @@
 trap "exit" INT
-Rscript model/forecast.R && git add . && git commit -m "Run." && git push
+Rscript model/forecast.R --iter=1500 && git add . && git commit -m "Run." && git push
