@@ -86,7 +86,7 @@ get_gdp_est = function() {
     #     gdp_sd=sqrt((0.2*0.15 + 0.3*sd(tail(nowcast, 5)/100))^2 + 0.5*q2$gdp_sd^2), 
     #     n=5)
     list(gdp_est=(1+q2$gdp_est)*(1+q3$gdp_est) - 1,
-         gdp_sd=sqrt(q2$gdp_est^2 + g3$gdp_est^2),
+         gdp_sd=sqrt(q2$gdp_est^2 + q3$gdp_est^2),
          n=100)
 }
 
