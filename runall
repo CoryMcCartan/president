@@ -1,0 +1,5 @@
+trap "exit" INT
+
+Rscript model/forecast.R --iter=10000 --chains=4 && git add . && git commit -m "Final run." && git push
+cd ../senate/
+Rscript model/forecast.R --iter=3000 --chains=4 && git add . && git commit -m "Final run." && git push

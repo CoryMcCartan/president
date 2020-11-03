@@ -20,7 +20,7 @@ option_list = list(
     make_option("--iter", type="integer", default=3000,
                 help="Number of MCMC iterations for voter intent estimation,
                       not including warmup iterations."),
-    make_option("--chains", type="integer", default=2,
+    make_option("--chains", type="integer", default=3,
                 help="Number of MCMC chains for voter intent estimation."),
     make_option("--recompile", action="store_true", default=F,
                 help="Force recompile of Stan models."),
@@ -35,7 +35,7 @@ option_list = list(
 )
 opt = parse_args(OptionParser(option_list=option_list,
                               description="Forecast the 2020 U.S. presidential election."))
-opt$iter = 3*ceiling(opt$iter/3)
+opt$iter = opt$chains*ceiling(opt$iter/opt$chains)
 
 suppressMessages(library(tibble))
 suppressMessages(library(dplyr))
@@ -164,9 +164,8 @@ polls_model = get_polls_m(polls_model_path, opt$recompile)
 cli_alert_success("Model loaded.")
 
 # TODO incorporate inv_metric stuff
-fit_polls = polls_model$sample(data=model_d, chains=3, iter_sampling=opt$iter/3, 
-                               iter_warmup=300, parallel_chains=3, adapt_delta=0.97, 
-                               step_size=0.015)
+fit_polls = polls_model$sample(data=model_d, chains=opt$chains, iter_sampling=opt$iter/opt$chain, 
+                               iter_warmup=300, parallel_chains=4, adapt_delta=0.97)
 cli_alert_success("Model successfully fit.")
 
 raw_draws = posterior::as_draws_df(fit_polls$draws())
